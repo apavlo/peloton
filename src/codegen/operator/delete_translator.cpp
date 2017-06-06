@@ -4,20 +4,16 @@
 //
 // delete_translator.cpp
 //
-// Identification: src/codegen/delete/delete_translator.cpp
+// Identification: src/codegen/operator/delete_translator.cpp
 //
 // Copyright (c) 2015-17, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
 
-#include "codegen/delete_translator.h"
+#include "codegen/operator/delete_translator.h"
+
 #include "codegen/catalog_proxy.h"
-#include "codegen/data_table_proxy.h"
-#include "codegen/tile_group_proxy.h"
-#include "codegen/transaction_proxy.h"
 #include "codegen/transaction_runtime_proxy.h"
-#include "common/item_pointer.h"
-#include "common/logger.h"
 #include "concurrency/transaction_manager_factory.h"
 
 namespace peloton {
