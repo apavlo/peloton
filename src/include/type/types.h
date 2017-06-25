@@ -363,6 +363,9 @@ enum class NetworkMessageType : unsigned char {
   PARSE_COMMAND = 'P',
   SIMPLE_QUERY_COMMAND = 'Q',
   CLOSE_COMMAND = 'C',
+  // SSL willingness
+  SSL_YES = 'S',
+  SSL_NO = 'N',
 };
 
 enum class NetworkTransactionStateType : unsigned char {
@@ -1130,10 +1133,10 @@ typedef std::vector<DirectMap> DirectMapList;
 //===--------------------------------------------------------------------===//
 enum class PropertyType {
   PREDICATE,
-  PROJECT,
   COLUMNS,
   DISTINCT,
   SORT,
+  LIMIT,
 };
 
 namespace expression {
@@ -1141,6 +1144,21 @@ class AbstractExpression;
 class ExprHasher;
 class ExprEqualCmp;
 }
+
+// Augment abstract expression with a table alias set
+struct MultiTableExpression {
+  MultiTableExpression(
+      expression::AbstractExpression* i_expr,
+      std::unordered_set<std::string>& i_set)
+      : expr(i_expr), table_alias_set(i_set) {}
+  MultiTableExpression(const MultiTableExpression& mt_expr)
+      : expr(mt_expr.expr), table_alias_set(mt_expr.table_alias_set) {}
+  expression::AbstractExpression* expr;
+  std::unordered_set<std::string> table_alias_set;
+};
+
+typedef std::vector<expression::AbstractExpression*> SingleTablePredicates;
+typedef std::vector<MultiTableExpression> MultiTablePredicates;
 
 // Mapping of Expression -> Column Offset created by operator
 typedef std::unordered_map<std::shared_ptr<expression::AbstractExpression>,
