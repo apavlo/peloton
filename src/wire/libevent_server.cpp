@@ -12,15 +12,6 @@
 
 #include "wire/libevent_server.h"
 
-#include <fcntl.h>
-#include <inttypes.h>
-#include <sys/socket.h>
-#include <fstream>
-
-#include "common/init.h"
-#include "common/macros.h"
-#include "common/thread_pool.h"
-
 namespace peloton {
 namespace wire {
 
@@ -128,9 +119,14 @@ void LibeventServer::StartServer() {
       throw ConnectionException("Error creating SSL context.\n");
     }
 
-    LOG_INFO("private key file path %s", private_key_file_.c_str());
     /*
      * Temporarily commented to pass tests START
+
+     // TODO: This code should probably not be here...
+     if (private_key_file_ != nullptr) {
+      LOG_INFO("private key file path %s", private_key_file_.c_str());
+    }
+
     // register private key
     if (SSL_CTX_use_PrivateKey_file(ssl_context, private_key_file_.c_str(),
                                     SSL_FILETYPE_PEM) == 0)

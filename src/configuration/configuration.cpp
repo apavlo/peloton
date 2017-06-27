@@ -71,12 +71,12 @@ DEFINE_string(private_key_file,
               // Currently use hardcoded private key path, may need to change
               // to generate file dynamically at runtime
               // The same applies to certificate file
-             "/home/vagrant/temp/server.key",
-             "path to private key file");
+              "",
+              "path to private key file");
 
 DEFINE_string(certificate_file,
-             "/home/vagrant/temp/server.crt",
-             "path to certificate file");
+              "",
+              "path to certificate file");
 
 //===----------------------------------------------------------------------===//
 // RESOURCE USAGE
