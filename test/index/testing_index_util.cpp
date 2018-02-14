@@ -104,21 +104,29 @@ void TestingIndexUtil::UniqueKeyInsertTest(const IndexType index_type) {
 
   // INDEX
   std::unique_ptr<index::Index, void(*)(index::Index *)> index(
-      TestingIndexUtil::BuildIndex(index_type, false), DestroyIndex);
+      TestingIndexUtil::BuildIndex(index_type, true), DestroyIndex);
   const catalog::Schema *key_schema = index->GetKeySchema();
 
   // Single threaded test
   size_t scale_factor = 1;
   LaunchParallelTest(1, TestingIndexUtil::InsertHelper, index.get(), pool,
                      scale_factor);
+  LOG_DEBUG("INDEX VALUES:\n%s",
+            index::IndexUtil::Debug(index.get()).c_str());
 
   // Checks
   std::unique_ptr<storage::Tuple> key0(new storage::Tuple(key_schema, true));
   key0->SetValue(0, type::ValueFactory::GetIntegerValue(100), pool);
   key0->SetValue(1, type::ValueFactory::GetVarcharValue("a"), pool);
 
+  LOG_DEBUG("ScanKey(key0=%s)", key0->GetInfo().c_str());
   index->ScanKey(key0.get(), location_ptrs);
   EXPECT_EQ(1, location_ptrs.size());
+#ifdef LOG_DEBUG_ENABLED
+  for (auto ptr : location_ptrs) {
+    LOG_DEBUG(" FOUND: %s", index::IndexUtil::GetInfo(ptr).c_str());
+  }
+#endif
   location_ptrs.clear();
 }
 
