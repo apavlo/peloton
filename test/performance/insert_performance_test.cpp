@@ -84,68 +84,120 @@ void InsertTuple(storage::DataTable *table, type::AbstractPool *pool,
   txn_manager.CommitTransaction(txn);
 }
 
-TEST_F(InsertPerformanceTests, LoadingTest) {
-  // We are going to simply load tile groups concurrently in this test
-  // WARNING: This test may potentially run for a long time if
-  // TEST_TUPLES_PER_TILEGROUP is large, consider rewrite the test or hard
-  // code the number of tuples per tile group in this test
-  oid_t tuples_per_tilegroup = TEST_TUPLES_PER_TILEGROUP;
-  bool build_indexes = false;
+/**
+ * This will test a single thread doing direct
+ * inserts into the DataTable (i.e., it is not going
+ * through the execution layer).
+ */
+TEST_F(InsertPerformanceTests, RawInsertTest) {
+  const int tuple_count = 5000000;
+  const int batch_size = 100000;
+  const bool build_indexes = false;
 
-  // Control the scale
-  oid_t loader_threads_count = 1;
-  oid_t tilegroup_count_per_loader = 1000;
+  std::unique_ptr<storage::DataTable> table(
+      TestingExecutorUtil::CreateTable(TEST_TUPLES_PER_TILEGROUP, build_indexes));
+  auto pool = TestingHarness::GetInstance().GetTestingPool();
+  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+  ItemPointer *index_entry_ptr = nullptr;
 
-  // Each tuple size ~40 B.
-  UNUSED_ATTRIBUTE oid_t tuple_size = 41;
+  LOG_INFO("Speed Test [numTuples=%d / batchSize=%d]",
+           tuple_count, batch_size);
 
-  std::unique_ptr<storage::DataTable> data_table(
-      TestingExecutorUtil::CreateTable(tuples_per_tilegroup, build_indexes));
-
-  auto testing_pool = TestingHarness::GetInstance().GetTestingPool();
-
+  // We'll use a single txn for all of the inserts so that
+  // our measurements are mostly based on how fast we can insert.
+  // There will be some small overhead of updating the txn's write set
+  // but that is unavoidable.
+  auto txn = txn_manager.BeginTransaction();
   Timer<> timer;
-
   timer.Start();
+  for (int tuple_id = 0; tuple_id < tuple_count; tuple_id++) {
+    std::unique_ptr<storage::Tuple> tuple(
+        TestingExecutorUtil::GetTuple(table.get(), tuple_id, pool));
+    ItemPointer tuple_slot_id =
+        table->InsertTuple(tuple.get(), txn, &index_entry_ptr);
+    PL_ASSERT(tuple_slot_id.block != INVALID_OID);
+    PL_ASSERT(tuple_slot_id.offset != INVALID_OID);
 
-  LaunchParallelTest(loader_threads_count, InsertTuple, data_table.get(),
-                     testing_pool, tilegroup_count_per_loader);
-
-  timer.Stop();
-  UNUSED_ATTRIBUTE auto duration = timer.GetDuration();
-
-  LOG_INFO("Duration: %.2lf", duration);
-
-  auto expected_tile_group_count = 0;
-
-  int total_tuple_count = loader_threads_count * tilegroup_count_per_loader * TEST_TUPLES_PER_TILEGROUP;
-  int max_cached_tuple_count = TEST_TUPLES_PER_TILEGROUP * storage::DataTable::default_active_tilegroup_count_;
-  int max_unfill_cached_tuple_count = (TEST_TUPLES_PER_TILEGROUP - 1) * storage::DataTable::default_active_tilegroup_count_;
-
-  if (total_tuple_count - max_cached_tuple_count <= 0) {
-    if (total_tuple_count <= max_unfill_cached_tuple_count) {
-      expected_tile_group_count = storage::DataTable::default_active_tilegroup_count_;
-    } else {
-      expected_tile_group_count = storage::DataTable::default_active_tilegroup_count_ + total_tuple_count - max_unfill_cached_tuple_count; 
+    if (tuple_id != 0 && tuple_id % batch_size == 0) {
+      timer.Stop();
+      LOG_INFO("Batch #%02d -- Duration: %.2lf / Total # of Tuples: %d",
+               (tuple_id / batch_size), timer.GetDuration(),
+               (int)table->GetTupleCount()
+      );
+      timer.Reset();
+      timer.Start();
     }
-  } else {
-    int filled_tile_group_count = total_tuple_count / max_cached_tuple_count * storage::DataTable::default_active_tilegroup_count_;
-    
-    if (total_tuple_count - filled_tile_group_count * TEST_TUPLES_PER_TILEGROUP - max_unfill_cached_tuple_count <= 0) {
-      expected_tile_group_count = filled_tile_group_count + storage::DataTable::default_active_tilegroup_count_;
-    } else {
-      expected_tile_group_count = filled_tile_group_count + storage::DataTable::default_active_tilegroup_count_ + (total_tuple_count - filled_tile_group_count - max_unfill_cached_tuple_count); 
-    }
-  }
 
-  UNUSED_ATTRIBUTE auto bytes_to_megabytes_converter = (1024 * 1024);
+  } // FOR
+  LOG_INFO("Total Duration: %.2lf", timer.GetTotalDuration());
+  txn_manager.CommitTransaction(txn);
 
-  EXPECT_EQ(data_table->GetTileGroupCount(), expected_tile_group_count);
-
-  LOG_INFO("Dataset size : %u MB \n",
-           (expected_tile_group_count * tuples_per_tilegroup * tuple_size) /
-               bytes_to_megabytes_converter);
+  // Sanity Check
+  EXPECT_EQ(tuple_count, table->GetTupleCount());
 }
+
+//TEST_F(InsertPerformanceTests, LoadingTest) {
+//  // We are going to simply load tile groups concurrently in this test
+//  // WARNING: This test may potentially run for a long time if
+//  // TEST_TUPLES_PER_TILEGROUP is large, consider rewrite the test or hard
+//  // code the number of tuples per tile group in this test
+//  oid_t tuples_per_tilegroup = TEST_TUPLES_PER_TILEGROUP;
+//  bool build_indexes = false;
+//
+//  // Control the scale
+//  oid_t loader_threads_count = 1;
+//  oid_t tilegroup_count_per_loader = 1000;
+//
+//  // Each tuple size ~40 B.
+//  UNUSED_ATTRIBUTE oid_t tuple_size = 41;
+//
+//  std::unique_ptr<storage::DataTable> data_table(
+//      TestingExecutorUtil::CreateTable(tuples_per_tilegroup, build_indexes));
+//
+//  auto testing_pool = TestingHarness::GetInstance().GetTestingPool();
+//
+//  Timer<> timer;
+//
+//  timer.Start();
+//
+//  LaunchParallelTest(loader_threads_count, InsertTuple, data_table.get(),
+//                     testing_pool, tilegroup_count_per_loader);
+//
+//  timer.Stop();
+//  UNUSED_ATTRIBUTE auto duration = timer.GetDuration();
+//
+//  LOG_INFO("Duration: %.2lf", duration);
+//
+//  auto expected_tile_group_count = 0;
+//
+//  int total_tuple_count = loader_threads_count * tilegroup_count_per_loader * TEST_TUPLES_PER_TILEGROUP;
+//  int max_cached_tuple_count = TEST_TUPLES_PER_TILEGROUP * storage::DataTable::default_active_tilegroup_count_;
+//  int max_unfill_cached_tuple_count = (TEST_TUPLES_PER_TILEGROUP - 1) * storage::DataTable::default_active_tilegroup_count_;
+//
+//  if (total_tuple_count - max_cached_tuple_count <= 0) {
+//    if (total_tuple_count <= max_unfill_cached_tuple_count) {
+//      expected_tile_group_count = storage::DataTable::default_active_tilegroup_count_;
+//    } else {
+//      expected_tile_group_count = storage::DataTable::default_active_tilegroup_count_ + total_tuple_count - max_unfill_cached_tuple_count;
+//    }
+//  } else {
+//    int filled_tile_group_count = total_tuple_count / max_cached_tuple_count * storage::DataTable::default_active_tilegroup_count_;
+//
+//    if (total_tuple_count - filled_tile_group_count * TEST_TUPLES_PER_TILEGROUP - max_unfill_cached_tuple_count <= 0) {
+//      expected_tile_group_count = filled_tile_group_count + storage::DataTable::default_active_tilegroup_count_;
+//    } else {
+//      expected_tile_group_count = filled_tile_group_count + storage::DataTable::default_active_tilegroup_count_ + (total_tuple_count - filled_tile_group_count - max_unfill_cached_tuple_count);
+//    }
+//  }
+//
+//  UNUSED_ATTRIBUTE auto bytes_to_megabytes_converter = (1024 * 1024);
+//
+//  EXPECT_EQ(data_table->GetTileGroupCount(), expected_tile_group_count);
+//
+//  LOG_INFO("Dataset size : %u MB \n",
+//           (expected_tile_group_count * tuples_per_tilegroup * tuple_size) /
+//               bytes_to_megabytes_converter);
+//}
 
 }  // namespace test
 }  // namespace peloton
