@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "planner/create_plan.h"
-
 #include "common/internal_types.h"
 #include "expression/abstract_expression.h"
 #include "expression/constant_value_expression.h"
@@ -49,13 +48,17 @@ CreatePlan::CreatePlan(parser::CreateStatement *parse_tree) {
     }
 
     case parser::CreateStatement::CreateType::kTable: {
-      table_name = std::string(parse_tree->GetTableName());
-      schema_name = std::string(parse_tree->GetSchemaName());
+      create_type = CreateType::TABLE;
       database_name = std::string(parse_tree->GetDatabaseName());
+      schema_name = std::string(parse_tree->GetSchemaName());
+      table_name = std::string(parse_tree->GetTableName());
+
+      // Temp Table Options
+      temp_table_ = parse_tree->is_temp_table;
+      commit_option = parse_tree->commit_option;
+
       std::vector<catalog::Column> columns;
       std::vector<catalog::Constraint> column_constraints;
-
-      create_type = CreateType::TABLE;
 
       // The parser puts the Foreign Key information into an artificial
       // ColumnDefinition.
@@ -205,6 +208,18 @@ CreatePlan::CreatePlan(parser::CreateStatement *parse_tree) {
 
       break;
     }
+    case parser::CreateStatement::CreateType::kSequence: {
+      create_type = CreateType::SEQUENCE;
+      database_name = std::string(parse_tree->GetDatabaseName());
+
+      sequence_name = parse_tree->sequence_name;
+      seq_start = parse_tree->seq_start;
+      seq_increment = parse_tree->seq_increment;
+      seq_max_value = parse_tree->seq_max_value;
+      seq_min_value = parse_tree->seq_min_value;
+      seq_cycle = parse_tree->seq_cycle;
+      break;
+    }
     default:
       LOG_ERROR("UNKNOWN CREATE TYPE");
       // TODO Should we handle this here?
@@ -228,6 +243,7 @@ void CreatePlan::ProcessForeignKeyConstraint(
 
   // Extract table names
   fkey_info.sink_table_name = col->fk_sink_table_name;
+  fkey_info.sink_table_schema = col->fk_sink_table_schema;
 
   // Extract delete and update actions
   fkey_info.upd_action = col->foreign_key_update_action;

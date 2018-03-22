@@ -88,5 +88,9 @@ char *ExecutorContext::ThreadStates::AccessThreadState(
   return states_ + (thread_id * state_size_);
 }
 
+std::string ExecutorContext::GetDatabaseName() const {
+  return default_database_name_;
+}
+
 }  // namespace executor
 }  // namespace peloton

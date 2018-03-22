@@ -18,7 +18,11 @@
 
 #include "executor/executor_context.h"
 #include "function/string_functions.h"
-#include "type/value_factory.h"
+#include "catalog/catalog.h"
+#include "catalog/database_catalog.h"
+#include "catalog/sequence_catalog.h"
+#include "concurrency/transaction_context.h"
+#include "concurrency/transaction_manager_factory.h"
 
 namespace peloton {
 namespace function {

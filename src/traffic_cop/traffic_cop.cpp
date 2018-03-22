@@ -105,6 +105,14 @@ ResultType TrafficCop::CommitQueryHelper() {
   // I will block following queries in that transaction until 'COMMIT' or
   // 'ROLLBACK' After receive 'COMMIT', see if it is rollback or really commit.
   if (curr_state.second != ResultType::ABORTED) {
+    //drop all the temp tables if chosen
+    if (txn->GetCommitOption() == ONCOMMIT_DROP) {
+      auto temp_table_objects = txn->GetTempTableObjects();
+      for (auto iter = temp_table_objects.begin(); iter != temp_table_objects.end(); iter++) {
+        auto table_ptr = *iter;
+        catalog::Catalog::GetInstance()->DropTable(table_ptr->GetDatabaseOid(), table_ptr->GetTableOid(), txn);
+      }
+    }
     // txn committed
     return txn_manager.CommitTransaction(txn);
   } else {
@@ -167,6 +175,7 @@ executor::ExecutionResult TrafficCop::ExecuteHelper(
     txn = txn_manager.BeginTransaction(thread_id);
     tcop_txn_state_.emplace(txn, ResultType::SUCCESS);
   }
+  txn->temp_session_name_ = temp_session_name_;
 
   // skip if already aborted
   if (curr_state.second == ResultType::ABORTED) {
@@ -191,9 +200,10 @@ executor::ExecutionResult TrafficCop::ExecuteHelper(
   };
 
   auto &pool = threadpool::MonoQueuePool::GetInstance();
-  pool.SubmitTask([plan, txn, &params, &result_format, on_complete] {
+  std::string default_database_name = default_database_name_;
+  pool.SubmitTask([plan, txn, &params, &result_format, on_complete, default_database_name] {
     executor::PlanExecutor::ExecutePlan(plan, txn, params, result_format,
-                                        on_complete);
+                                        on_complete, default_database_name);
   });
 
   is_queuing_ = true;
@@ -420,7 +430,7 @@ void TrafficCop::GetTableColumns(parser::TableRef *from_table,
       auto columns =
           static_cast<storage::DataTable *>(
               catalog::Catalog::GetInstance()->GetTableWithName(
-                  from_table->GetDatabaseName(), from_table->GetSchemaName(),
+                  from_table->GetDatabaseName(), from_table->GetSchemaName(), session_namespace_,
                   from_table->GetTableName(), GetCurrentTxnState().first))
               ->GetSchema()
               ->GetColumns();
@@ -612,6 +622,38 @@ ResultType TrafficCop::ExecuteStatement(
     error_message_ = e.what();
     return ResultType::FAILURE;
   }
+}
+
+void TrafficCop::DropTempTables() {
+  // begin a transaction
+  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+
+  // FIXME: BeginTransaction should support the session namespace parameter
+  auto txn = txn_manager.BeginTransaction();
+  txn->SetTemporarySchemaName(session_namespace_);
+
+  //drop all the temp tables under this namespace
+  catalog::Catalog::GetInstance()->DropTempTables(
+      default_database_name_, session_namespace_, txn);
+  //drop the schema
+  catalog::Catalog::GetInstance()->DropSchema(
+      default_database_name_, session_namespace_, txn);
+  catalog::Catalog::GetInstance()->RemoveCachedSequenceCurrVal(
+      default_database_name_, session_namespace_, txn);
+  txn_manager.CommitTransaction(txn);
+}
+
+void TrafficCop::CreateTempSchema() {
+  // begin a transaction
+  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+
+  // FIXME: BeginTransaction should support the session namespace parameter
+  auto txn = txn_manager.BeginTransaction();
+  txn->SetTemporarySchemaName(session_namespace_);
+
+  catalog::Catalog::GetInstance()->CreateSchema(
+      default_database_name_, session_namespace_, txn);
+  txn_manager.CommitTransaction(txn);
 }
 
 }  // namespace tcop

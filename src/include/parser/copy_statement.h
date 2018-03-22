@@ -13,6 +13,7 @@
 #pragma once
 
 #include "parser/select_statement.h"
+#include "catalog/catalog_defaults.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 #include "common/sql_node_visitor.h"

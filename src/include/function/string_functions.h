@@ -120,6 +120,7 @@ class StringFunctions {
    */
   static StrWithLen InputString(const codegen::type::Type &type,
                                 const char *data, uint32_t len);
+
 };
 
 }  // namespace function

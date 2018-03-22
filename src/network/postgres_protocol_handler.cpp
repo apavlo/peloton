@@ -1046,6 +1046,7 @@ ProcessResult PostgresProtocolHandler::ProcessStartupPacket(
     cmdline_options_[token] = value;
     if (token.compare("database") == 0) {
       traffic_cop_->SetDefaultDatabaseName(value);
+      traffic_cop_->CreateTempSchema();
     }
   }
 
@@ -1218,6 +1219,7 @@ void PostgresProtocolHandler::CompleteCommand(const QueryType &query_type,
     case QueryType::QUERY_CREATE_DB:
     case QueryType::QUERY_CREATE_INDEX:
     case QueryType::QUERY_CREATE_TRIGGER:
+    case QueryType::QUERY_CREATE_SEQUENCE:
     case QueryType::QUERY_PREPARE:
       break;
     default:

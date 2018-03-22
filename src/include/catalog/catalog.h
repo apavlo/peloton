@@ -110,6 +110,7 @@ class Catalog {
   // Create index for a table
   ResultType CreateIndex(const std::string &database_name,
                          const std::string &schema_name,
+                         const std::string &session_namespace,
                          const std::string &table_name,
                          const std::vector<oid_t> &key_attrs,
                          const std::string &index_name, bool unique_keys,
@@ -170,6 +171,7 @@ class Catalog {
   // Drop a table using table name
   ResultType DropTable(const std::string &database_name,
                        const std::string &schema_name,
+                       const std::string &session_namespace,
                        const std::string &table_name,
                        concurrency::TransactionContext *txn);
   // Drop a table, use this one in the future
@@ -206,6 +208,7 @@ class Catalog {
    * */
   storage::DataTable *GetTableWithName(const std::string &database_name,
                                        const std::string &schema_name,
+                                       const std::string &session_namespace,
                                        const std::string &table_name,
                                        concurrency::TransactionContext *txn);
 
@@ -233,6 +236,17 @@ class Catalog {
    * Using database oid to get system catalog object
    */
   std::shared_ptr<SystemCatalogs> GetSystemCatalogs(const oid_t database_oid);
+
+
+  /*
+   * Drop all the temporary tables created during a session
+   */
+  void DropTempTables(const std::string &database_name,
+                      concurrency::TransactionContext *txn);
+
+  void RemoveCachedSequenceCurrVal(const std::string &database_name,
+                      concurrency::TransactionContext *txn);
+
   //===--------------------------------------------------------------------===//
   // DEPRECATED FUNCTIONS
   //===--------------------------------------------------------------------===//

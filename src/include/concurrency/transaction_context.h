@@ -19,10 +19,12 @@
 #include <vector>
 
 #include "catalog/catalog_cache.h"
+#include "catalog/table_catalog.h"
 #include "common/exception.h"
 #include "common/item_pointer.h"
 #include "common/printable.h"
 #include "common/internal_types.h"
+#include "parser/parsenodes.h"
 
 namespace peloton {
 
@@ -132,7 +134,7 @@ class TransactionContext : public Printable {
    * @param[in]  epoch_id  The epoch identifier
    */
   inline void SetEpochId(const eid_t epoch_id) { epoch_id_ = epoch_id; }
-  
+
   /**
    * @brief      Sets the timestamp.
    *
@@ -283,8 +285,42 @@ class TransactionContext : public Printable {
     return isolation_level_;
   }
 
+  /**
+   * @brief table_oid add table oid created in the transaction into table
+   * @param table_oid the temp table oid to be added
+   */
+  inline void AddTempTableObject(std::shared_ptr<catalog::TableCatalogObject> table_object) {
+    temp_table_objects.push_back(table_object);
+  }
+
+  /**
+   * @breif get temp table objects
+   * @return the temp table objects
+   */
+  inline std::vector<std::shared_ptr<catalog::TableCatalogObject>> GetTempTableObjects() {
+    return temp_table_objects;
+  }
+
+  /**
+   * @brief set the commit option for create table
+   * @param the commit option
+   */
+  inline void SetCommitOption(OnCommitAction commit_option) {
+    commit_option_ = commit_option;
+  }
+
+  /***
+   * @brief get the commit option
+   * @return the commit option
+   */
+  inline OnCommitAction GetCommitOption() {
+    return commit_option_;
+  }
+
   /** cache for table catalog objects */
   catalog::CatalogCache catalog_cache;
+
+  std::string temp_session_name_;
 
  private:
   //===--------------------------------------------------------------------===//
@@ -328,8 +364,8 @@ class TransactionContext : public Printable {
   ReadWriteSet rw_set_;
   CreateDropSet rw_object_set_;
 
-  /** 
-   * this set contains data location that needs to be gc'd in the transaction. 
+  /**
+   * this set contains data location that needs to be gc'd in the transaction.
    */
   std::shared_ptr<GCSet> gc_set_;
   std::shared_ptr<GCObjectSet> gc_object_set_;
@@ -346,6 +382,15 @@ class TransactionContext : public Printable {
 
   /** one default transaction is NOT 'read only' unless it is marked 'read only' explicitly*/
   bool read_only_ = false;
+
+  /**
+   * The temporary schema namespace for this transaction
+   */
+  std::string temp_schema_name_;
+
+  // The list of oids for any temp tables created by this txn
+  std::vector<std::shared_ptr<catalog::TableCatalogObject>> temp_table_objects;
+  OnCommitAction commit_option_; //what we do on commit?
 };
 
 }  // namespace concurrency

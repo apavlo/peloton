@@ -13,11 +13,14 @@
 #pragma once
 
 #include <memory>
+#include <limits.h>
+
 #include "common/internal_types.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
+#include "parser/parsenodes.h"
 
 namespace peloton {
 namespace parser {
@@ -196,6 +199,7 @@ struct ColumnDefinition {
   std::unique_ptr<expression::AbstractExpression> check_expression = nullptr;
 
   std::string fk_sink_table_name;
+  std::string fk_sink_table_schema;
   std::vector<std::string> primary_key;
   std::vector<std::string> foreign_key_source;
   std::vector<std::string> foreign_key_sink;
@@ -215,12 +219,21 @@ struct ColumnDefinition {
  */
 class CreateStatement : public TableRefStatement {
  public:
-  enum CreateType { kTable, kDatabase, kIndex, kTrigger, kSchema, kView };
+  enum CreateType {
+    kTable,
+    kDatabase,
+    kIndex,
+    kTrigger,
+    kSchema,
+    kView,
+    kSequence
+  };
 
   CreateStatement(CreateType type)
       : TableRefStatement(StatementType::CREATE),
         type(type),
-        if_not_exists(false){};
+        if_not_exists(false),
+        is_temp_table(false){};
 
   virtual ~CreateStatement() {}
 
@@ -232,7 +245,7 @@ class CreateStatement : public TableRefStatement {
 
   CreateType type;
   bool if_not_exists;
-
+  bool is_temp_table;
   std::vector<std::unique_ptr<ColumnDefinition>> columns;
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
 
@@ -245,6 +258,7 @@ class CreateStatement : public TableRefStatement {
 
   bool unique = false;
 
+  OnCommitAction commit_option; //what we do on commit?
   std::string trigger_name;
   std::vector<std::string> trigger_funcname;
   std::vector<std::string> trigger_args;
@@ -252,6 +266,14 @@ class CreateStatement : public TableRefStatement {
   std::unique_ptr<expression::AbstractExpression> trigger_when;
   int16_t trigger_type;  // information about row, timing, events, access by
                          // pg_trigger
+
+  // attributes related to sequences
+  std::string sequence_name;
+  int64_t seq_start = 1;
+  int64_t seq_increment = 1;
+  int64_t seq_max_value = LONG_MAX;
+  int64_t seq_min_value = 1;
+  bool seq_cycle = false;
 };
 
 }  // namespace parser

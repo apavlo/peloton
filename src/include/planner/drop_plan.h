@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "catalog/catalog_defaults.h"
 #include "concurrency/transaction_context.h"
 #include "planner/abstract_plan.h"
 
@@ -57,6 +58,8 @@ class DropPlan : public AbstractPlan {
   std::string GetSchemaName() const { return schema_name; }
 
   std::string GetTriggerName() const { return trigger_name; }
+  
+  std::string GetSequenceName() const { return sequence_name; }
 
   std::string GetIndexName() const { return index_name; }
 
@@ -77,6 +80,10 @@ class DropPlan : public AbstractPlan {
   std::string schema_name;
 
   std::string trigger_name;
+
+  // sequence name
+  std::string sequence_name;
+  
   std::string index_name;
   bool missing;
 

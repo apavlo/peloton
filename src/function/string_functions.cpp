@@ -16,6 +16,8 @@
 #include "executor/executor_context.h"
 #include "type/type_util.h"
 #include "type/abstract_pool.h"
+#include "catalog/catalog.h"
+#include "catalog/database_catalog.h"
 
 namespace peloton {
 namespace function {
@@ -251,7 +253,25 @@ StringFunctions::StrWithLen StringFunctions::InputString(
     UNUSED_ATTRIBUTE const codegen::type::Type &type, const char *data,
     uint32_t len) {
   return StringFunctions::StrWithLen{data, len + 1};
+
+uint32_t StringFunctions::Nextval(executor::ExecutorContext &ctx, const char *sequence_name) {
+  PELOTON_ASSERT(sequence_name != nullptr);
+  auto database_object =
+          catalog::Catalog::GetInstance()
+                  ->GetDatabaseObject(ctx.GetDatabaseName(), ctx.GetTransaction());
+  catalog::SequenceCatalogObject* sequence_object =
+          catalog::Catalog::GetInstance()
+          ->GetSystemCatalogs(database_object->GetDatabaseOid())
+          ->GetSequenceCatalog()
+          ->GetSequence(database_object->GetDatabaseOid(), sequence_name, ctx.GetTransaction()).get();
+  if (sequence_object != nullptr) {
+    return sequence_object->GetNextVal();
+  } else {
+    throw SequenceException(
+            StringUtil::Format("Sequence not exists!"));
+  }
 }
+
 
 }  // namespace function
 }  // namespace peloton

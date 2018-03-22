@@ -142,10 +142,10 @@ TEST_F(StatsTests, MultiThreadStatsTest) {
 
   // Create multiple stat worker threads
   int num_threads = 8;
-  storage::Database *database =
-      catalog->GetDatabaseWithName("emp_db", txn);
-  storage::DataTable *table = catalog->GetTableWithName(
-      "emp_db", DEFAULT_SCHEMA_NAME, "department_table", txn);
+  storage::Database *database = catalog->GetDatabaseWithName("emp_db", txn);
+  storage::DataTable *table =
+      catalog->GetTableWithName("emp_db", DEFAULT_SCHEMA_NAME,
+                                DEFAULT_SCHEMA_NAME, "department_table", txn);
   txn_manager.CommitTransaction(txn);
   LaunchParallelTest(num_threads, TransactionTest, database, table);
   // Wait for aggregation to finish

@@ -125,7 +125,8 @@ TEST_F(CopyTests, Copying) {
 
   LOG_TRACE("Binding parse tree...");
   auto parse_tree = copy_stmt->GetStatement(0);
-  auto bind_node_visitor = binder::BindNodeVisitor(txn, db_name);
+  auto bind_node_visitor =
+      binder::BindNodeVisitor(txn, db_name);
   bind_node_visitor.BindNameToNode(parse_tree);
   LOG_TRACE("Binding parse tree completed!");
 

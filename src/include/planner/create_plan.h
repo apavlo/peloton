@@ -12,8 +12,10 @@
 
 #pragma once
 
+#include "catalog/catalog_defaults.h"
 #include "parser/create_statement.h"
 #include "planner/abstract_plan.h"
+#include "common/exception.h"
 
 namespace peloton {
 namespace catalog {
@@ -42,6 +44,7 @@ struct ForeignKeyInfo {
   std::vector<std::string> foreign_key_sources;
   std::vector<std::string> foreign_key_sinks;
   std::string sink_table_name;
+  std::string sink_table_schema;
   std::string constraint_name;
   FKConstrActionType upd_action;
   FKConstrActionType del_action;
@@ -90,7 +93,19 @@ class CreatePlan : public AbstractPlan {
 
   std::vector<std::string> GetIndexAttributes() const { return index_attrs; }
 
-  inline std::vector<ForeignKeyInfo> GetForeignKeys() const {
+  /**
+   * @brief Flag to indicate that a table is a temp table
+   * @return true if this is flag to create a temp table
+   */
+  bool GetTempTable() const { return (temp_table_); }
+
+  /**
+   * @brief The commit action for a temp table
+   * @return
+   */
+  OnCommitAction GetTempTableCommitAction() const { return (commit_option); }
+
+  std::vector<ForeignKeyInfo> GetForeignKeys() const {
     return foreign_keys;
   }
   std::vector<oid_t> GetKeyAttrs() const { return key_attrs; }
@@ -113,6 +128,16 @@ class CreatePlan : public AbstractPlan {
   expression::AbstractExpression *GetTriggerWhen() const;
 
   int16_t GetTriggerType() const { return trigger_type; }
+
+  std::string GetSequenceName() const { return sequence_name; }
+  int64_t GetSequenceStart() const { return seq_start; };
+  int64_t GetSequenceIncrement() const { return seq_increment; }
+  int64_t GetSequenceMaxValue() const { return seq_max_value; }
+  int64_t GetSequenceMinValue() const { return seq_min_value; }
+  int64_t GetSequenceCacheSize() const { return seq_cache; }
+  bool GetSequenceCycle() const { return seq_cycle; }
+
+  OnCommitAction GetCommitOption() const { return commit_option; }
 
  protected:
   // This is a helper method for extracting foreign key information
@@ -149,6 +174,12 @@ class CreatePlan : public AbstractPlan {
   // UNIQUE INDEX flag
   bool unique;
 
+  // TEMP TABLES
+  // If set to true, then this table is flagged as temporary for session
+  bool temp_table_;
+  // What to do when the txn that modifies a temp table  commits
+  OnCommitAction commit_option;
+
   // ColumnDefinition for multi-column constraints (including foreign key)
   std::vector<ForeignKeyInfo> foreign_keys;
   std::string trigger_name;
@@ -158,6 +189,15 @@ class CreatePlan : public AbstractPlan {
   std::unique_ptr<expression::AbstractExpression> trigger_when = nullptr;
   int16_t trigger_type;  // information about row, timing, events, access by
                          // pg_trigger
+
+  // information for sequences;
+  std::string sequence_name;
+  int64_t seq_start;
+  int64_t seq_increment;
+  int64_t seq_max_value;
+  int64_t seq_min_value;
+  int64_t seq_cache;  // sequence cache size, not supported yet
+  bool seq_cycle;
 
  private:
   DISALLOW_COPY_AND_MOVE(CreatePlan);

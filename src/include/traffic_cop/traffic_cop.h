@@ -145,9 +145,17 @@ class TrafficCop {
     default_database_name_ = std::move(default_database_name);
   }
 
-  // TODO: this member variable should be in statement_ after parser part
-  // finished
-  std::string query_;
+  /**
+   * @brief Set the session namespace for this session.
+   */
+  void SetSessionNamespace(const std::string session_namespace) {
+    session_namespace_ = std::move(session_namespace);
+  }
+
+  //Used to drop all the temporary table created for this session
+  void DropTempTables();
+
+  void CreateTempSchema();
 
  private:
   bool is_queuing_;
@@ -163,6 +171,12 @@ class TrafficCop {
 
   // Default database name
   std::string default_database_name_ = DEFAULT_DB_NAME;
+
+  // Default session namespace
+  // This needs to be here because the traffic_cop represents a client session.
+  // Each session can have multiple txns, all of which need to use the same
+  // temporary namespace.
+  std::string session_namespace_ = DEFAULT_SCHEMA_NAME;
 
   int rows_affected_;
 

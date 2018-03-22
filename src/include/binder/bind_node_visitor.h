@@ -21,7 +21,6 @@ namespace peloton {
 
 namespace expression {
 class CaseExpression;
-class ConstantExpression;
 class TupleValueExpression;
 class SubqueryExpression;
 class StarExpression;
