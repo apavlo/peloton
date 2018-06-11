@@ -137,7 +137,6 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *  generate filter operator
    */
   std::vector<AnnotatedExpression> predicates_;
-  std::string session_namespace_;
 };
 
 }  // namespace optimizer

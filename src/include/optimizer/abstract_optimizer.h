@@ -54,13 +54,7 @@ class AbstractOptimizer {
       const std::unique_ptr<parser::SQLStatementList> &parse_tree,
       concurrency::TransactionContext *txn) = 0;
 
-  //set the namespace for the session
-  virtual inline void SetSessionNamespace(const std::string session_namespace) {
-    session_namespace_ = std::move(session_namespace);
-  }
   virtual void Reset(){};
-   //session namespace
-   std::string session_namespace_ = DEFAULT_SCHEMA_NAME;
 };
 
 }  // namespace optimizer

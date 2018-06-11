@@ -126,11 +126,10 @@ bool CreateExecutor::CreateTable(const planner::CreatePlan &node) {
   std::string table_name = node.GetTableName();
   std::string schema_name = node.GetSchemaName();
   std::string database_name = node.GetDatabaseName();
-  std::string session_namespace = node.GetSessionNamespace();
   std::unique_ptr<catalog::Schema> schema(node.GetSchema());
 
   //check foreign key schema first
-  CheckForeignKeySchema(schema_name, database_name, session_namespace, node, current_txn);
+  CheckForeignKeySchema(schema_name, database_name, node, current_txn);
 
   ResultType result = catalog::Catalog::GetInstance()->CreateTable(
       database_name, schema_name, table_name, std::move(schema), current_txn);
@@ -141,7 +140,7 @@ bool CreateExecutor::CreateTable(const planner::CreatePlan &node) {
     if (schema_name.find(TEMP_NAMESPACE_PREFIX) != std::string::npos) {
       auto catalog = catalog::Catalog::GetInstance();
       //get the table object
-      auto table_object = catalog->GetTableObject(database_name, schema_name, session_namespace, 
+      auto table_object = catalog->GetTableObject(database_name, schema_name,
                                                   table_name, current_txn);
       //record the table oid if we need to delete rows or drop the temp table.
       if (node.GetCommitOption() == ONCOMMIT_DROP || node.GetCommitOption() == ONCOMMIT_DELETE_ROWS) {
@@ -206,7 +205,7 @@ bool CreateExecutor::CreateTable(const planner::CreatePlan &node) {
         std::vector<std::string> source_col_names = fk.foreign_key_sources;
         std::string index_name = table_name + "_FK_" + sink_table->GetName() +
                                  "_" + std::to_string(count);
-        catalog->CreateIndex(database_name, schema_name, session_namespace, table_name,
+        catalog->CreateIndex(database_name, schema_name, table_name,
                              source_col_ids, index_name, false,
                              IndexType::BWTREE, current_txn);
         count++;
@@ -236,13 +235,13 @@ bool CreateExecutor::CreateTable(const planner::CreatePlan &node) {
 //check whether the foriegn key schema and the current schema are not only one in temp.
 void CreateExecutor::CheckForeignKeySchema(
   const std::string &schema_name, const std::string &database_name,
-  const std::string &session_namespace, const planner::CreatePlan &node,
+  const planner::CreatePlan &node,
   concurrency::TransactionContext *txn) {
   for (auto fk : node.GetForeignKeys()) {
       auto catalog = catalog::Catalog::GetInstance();
       //get table obejct for use
       auto sink_table_object = catalog->GetTableObject(database_name, fk.sink_table_schema,
-                                                  session_namespace, fk.sink_table_name, txn);
+                                                       fk.sink_table_name, txn);
       std::string sink_table_schema = sink_table_object->GetSchemaName();
       //if target is under temp but current not.
       if (schema_name.find(TEMP_NAMESPACE_PREFIX) == std::string::npos) {
@@ -266,14 +265,13 @@ bool CreateExecutor::CreateIndex(const planner::CreatePlan &node) {
   std::string schema_name = node.GetSchemaName();
   std::string table_name = node.GetTableName();
   std::string index_name = node.GetIndexName();
-  std::string session_namespace = node.GetSessionNamespace();
   bool unique_flag = node.IsUnique();
   IndexType index_type = node.GetIndexType();
 
   auto key_attrs = node.GetKeyAttrs();
 
   ResultType result = catalog::Catalog::GetInstance()->CreateIndex(
-      database_name, schema_name, session_namespace, 
+      database_name, schema_name,
       table_name, key_attrs, index_name,
       unique_flag, index_type, txn);
   txn->SetResult(result);
@@ -294,7 +292,6 @@ bool CreateExecutor::CreateTrigger(const planner::CreatePlan &node) {
   std::string schema_name = node.GetSchemaName();
   std::string table_name = node.GetTableName();
   std::string trigger_name = node.GetTriggerName();
-  std::string session_namespace = node.GetSessionNamespace();
 
   trigger::Trigger newTrigger(node);
   auto table_object = catalog::Catalog::GetInstance()->GetTableObject(
@@ -322,7 +319,7 @@ bool CreateExecutor::CreateTrigger(const planner::CreatePlan &node) {
   // ask target table to update its trigger list variable
   storage::DataTable *target_table =
       catalog::Catalog::GetInstance()->GetTableWithName(
-          database_name, schema_name, session_namespace, table_name, txn);
+          database_name, schema_name, table_name, txn);
   target_table->UpdateTriggerListFromCatalog(txn);
 
   // hardcode SUCCESS result for txn

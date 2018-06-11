@@ -36,8 +36,7 @@ static void CompileAndExecutePlan(
     std::shared_ptr<planner::AbstractPlan> plan,
     concurrency::TransactionContext *txn,
     const std::vector<type::Value> &params,
-    std::function<void(executor::ExecutionResult, std::vector<ResultValue> &&)> on_complete,
-    std::string default_database_name) {
+    std::function<void(executor::ExecutionResult, std::vector<ResultValue> &&)> on_complete) {
   LOG_TRACE("Compiling and executing query ...");
 
   // Perform binding
@@ -104,7 +103,7 @@ static void InterpretPlan(
   std::vector<ResultValue> values;
 
   std::unique_ptr<executor::ExecutorContext> executor_context(
-      new executor::ExecutorContext(txn, params, default_database_name));
+      new executor::ExecutorContext(txn, params));
 
   bool status;
   std::unique_ptr<executor::AbstractExecutor> executor_tree(

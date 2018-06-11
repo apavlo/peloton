@@ -22,6 +22,7 @@
 #include "catalog/column.h"
 #include "common/internal_types.h"
 #include "common/portal.h"
+#include "common/session_context.h"
 #include "common/statement.h"
 #include "executor/plan_executor.h"
 #include "optimizer/abstract_optimizer.h"

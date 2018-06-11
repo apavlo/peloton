@@ -99,7 +99,6 @@ shared_ptr<planner::AbstractPlan> Optimizer::BuildPelotonPlanTree(
   }
   // TODO: support multi-statement queries
   auto parse_tree = parse_tree_list->GetStatement(0);
-  parse_tree->SetSessionNamespace(session_namespace_);
   unique_ptr<planner::AbstractPlan> child_plan = nullptr;
 
   // Handle ddl statement
@@ -148,7 +147,6 @@ unique_ptr<planner::AbstractPlan> Optimizer::HandleDDLStatement(
     case StatementType::DROP: {
       LOG_TRACE("Adding Drop plan...");
       planner::DropPlan* drop_plan_from_parser = new planner::DropPlan((parser::DropStatement *)tree);
-      drop_plan_from_parser->SetSessionNamespace(session_namespace_);
       unique_ptr<planner::AbstractPlan> drop_plan(drop_plan_from_parser);
       ddl_plan = move(drop_plan);
       break;
@@ -156,24 +154,22 @@ unique_ptr<planner::AbstractPlan> Optimizer::HandleDDLStatement(
 
     case StatementType::CREATE: {
       LOG_TRACE("Adding Create plan...");
-      tree->SetSessionNamespace(session_namespace_);
       // This is adapted from the simple optimizer
       auto create_plan =
           new planner::CreatePlan((parser::CreateStatement *)tree);
       //set create plan session namespace
-      create_plan->SetSessionNamespace(session_namespace_);
       std::unique_ptr<planner::AbstractPlan> child_CreatePlan(create_plan);
       ddl_plan = move(child_CreatePlan);
 
       if (create_plan->GetCreateType() == peloton::CreateType::INDEX) {
         auto create_stmt = (parser::CreateStatement *)tree;
         auto target_table = catalog::Catalog::GetInstance()->GetTableWithName(
-            create_stmt->GetDatabaseName(), create_stmt->GetSchemaName(), session_namespace_,
+            create_stmt->GetDatabaseName(), create_stmt->GetSchemaName(),
             create_stmt->GetTableName(), txn);
         std::vector<oid_t> column_ids;
         // use catalog object instead of schema to acquire metadata
         auto table_object = catalog::Catalog::GetInstance()->GetTableObject(
-            create_stmt->GetDatabaseName(), create_stmt->GetSchemaName(), session_namespace_,
+            create_stmt->GetDatabaseName(), create_stmt->GetSchemaName(),
             create_stmt->GetTableName(), txn);
         for (auto column_name : create_plan->GetIndexAttributes()) {
           auto column_object = table_object->GetColumnObject(column_name);
@@ -218,13 +214,6 @@ unique_ptr<planner::AbstractPlan> Optimizer::HandleDDLStatement(
       ddl_plan = move(analyze_plan);
       break;
     }
-    case StatementType::COPY: {
-      LOG_TRACE("Adding Copy plan...");
-      parser::CopyStatement *copy_parse_tree =
-          static_cast<parser::CopyStatement *>(tree);
-      ddl_plan = util::CreateCopyPlan(copy_parse_tree);
-      break;
-    }
     default:
       is_ddl_stmt = false;
   }
@@ -234,7 +223,6 @@ unique_ptr<planner::AbstractPlan> Optimizer::HandleDDLStatement(
 shared_ptr<GroupExpression> Optimizer::InsertQueryTree(
     parser::SQLStatement *tree, concurrency::TransactionContext *txn) {
   QueryToOperatorTransformer converter(txn);
-  converter.SetSessionNamespace(session_namespace_);
   shared_ptr<OperatorExpression> initial =
       converter.ConvertToOpExpression(tree);
   shared_ptr<GroupExpression> gexpr;

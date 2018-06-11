@@ -61,7 +61,7 @@ class CreateExecutor : public AbstractExecutor {
  private:
   void CheckForeignKeySchema(
       const std::string &schema_name, const std::string &database_name,
-      const std::string &session_namespace, const planner::CreatePlan &node,
+      const planner::CreatePlan &node,
       concurrency::TransactionContext *txn);
   ExecutorContext *context_;
 
