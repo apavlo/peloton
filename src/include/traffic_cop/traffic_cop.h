@@ -170,14 +170,10 @@ class TrafficCop {
   // This save currnet statement in the traffic cop
   std::shared_ptr<Statement> statement_;
 
-  // Default database name
-  std::string default_database_name_ = DEFAULT_DB_NAME;
-
-  // Default session namespace
-  // This needs to be here because the traffic_cop represents a client session.
-  // Each session can have multiple txns, all of which need to use the same
-  // temporary namespace.
-  std::string session_namespace_ = DEFAULT_SCHEMA_NAME;
+  // The session context is where store information about this connection
+  // that is needed during the transaction's lifetime. It will be shared
+  // across multiple transactions
+  SessionContext session_context_;
 
   int rows_affected_;
 
