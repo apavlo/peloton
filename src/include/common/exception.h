@@ -61,8 +61,7 @@ enum class ExceptionType {
   NETWORK = 25,           // network related
   OPTIMIZER = 26,         // optimizer related
   NULL_POINTER = 27,      // nullptr exception
-  OPTIMIZER = 26,         // optimizer related
-  SEQUENCE = 27           // sequence related
+  SEQUENCE = 28           // sequence related
 };
 
 class Exception : public std::runtime_error {

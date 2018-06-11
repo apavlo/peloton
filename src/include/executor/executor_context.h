@@ -61,7 +61,6 @@ class ExecutorContext {
   /// Return the memory pool for this particular query execution
   type::EphemeralPool *GetPool();
 
-<<<<<<< HEAD
   class ThreadStates {
    public:
     explicit ThreadStates(type::EphemeralPool &pool);
@@ -93,11 +92,9 @@ class ExecutorContext {
   ThreadStates &GetThreadStates();
 
   /// Number of processed tuples during execution
-=======
   std::string GetDatabaseName() const;
 
   // Number of processed tuples during execution
->>>>>>> b8c7317... adding nextval & currval functions; comment out lock and nextval not functioning well
   uint32_t num_processed = 0;
 
  private:
@@ -108,15 +105,11 @@ class ExecutorContext {
   // The storage manager instance
   storage::StorageManager *storage_manager_;
   // Temporary memory pool for allocations done during execution
-<<<<<<< HEAD
   type::EphemeralPool pool_;
   // Container for all states of all thread participating in this execution
   ThreadStates thread_states_;
-=======
-  std::unique_ptr<type::EphemeralPool> pool_;
   // Default database name
   std::string default_database_name_;
->>>>>>> b8c7317... adding nextval & currval functions; comment out lock and nextval not functioning well
 };
 
 template <typename T>

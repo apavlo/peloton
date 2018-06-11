@@ -175,7 +175,8 @@ executor::ExecutionResult TrafficCop::ExecuteHelper(
     txn = txn_manager.BeginTransaction(thread_id);
     tcop_txn_state_.emplace(txn, ResultType::SUCCESS);
   }
-  txn->temp_session_name_ = temp_session_name_;
+  // FIXME: Replace this with a SessionContext object
+  // txn->temp_session_name_ = temp_session_name_;
 
   // skip if already aborted
   if (curr_state.second == ResultType::ABORTED) {
@@ -428,10 +429,9 @@ void TrafficCop::GetTableColumns(parser::TableRef *from_table,
   } else if (from_table->list.empty()) {
     if (from_table->join == NULL) {
       auto columns =
-          static_cast<storage::DataTable *>(
               catalog::Catalog::GetInstance()->GetTableWithName(
-                  from_table->GetDatabaseName(), from_table->GetSchemaName(), session_namespace_,
-                  from_table->GetTableName(), GetCurrentTxnState().first))
+                  from_table->GetDatabaseName(), from_table->GetSchemaName(),
+                  from_table->GetTableName(), GetCurrentTxnState().first)
               ->GetSchema()
               ->GetColumns();
       target_columns.insert(target_columns.end(), columns.begin(),
@@ -630,16 +630,15 @@ void TrafficCop::DropTempTables() {
 
   // FIXME: BeginTransaction should support the session namespace parameter
   auto txn = txn_manager.BeginTransaction();
-  txn->SetTemporarySchemaName(session_namespace_);
 
   //drop all the temp tables under this namespace
   catalog::Catalog::GetInstance()->DropTempTables(
-      default_database_name_, session_namespace_, txn);
+      default_database_name_, txn);
   //drop the schema
   catalog::Catalog::GetInstance()->DropSchema(
       default_database_name_, session_namespace_, txn);
   catalog::Catalog::GetInstance()->RemoveCachedSequenceCurrVal(
-      default_database_name_, session_namespace_, txn);
+      default_database_name_, txn);
   txn_manager.CommitTransaction(txn);
 }
 
@@ -649,7 +648,7 @@ void TrafficCop::CreateTempSchema() {
 
   // FIXME: BeginTransaction should support the session namespace parameter
   auto txn = txn_manager.BeginTransaction();
-  txn->SetTemporarySchemaName(session_namespace_);
+  // txn->SetTemporarySchemaName(session_namespace_);
 
   catalog::Catalog::GetInstance()->CreateSchema(
       default_database_name_, session_namespace_, txn);

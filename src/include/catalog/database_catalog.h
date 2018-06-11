@@ -50,7 +50,6 @@ class DatabaseCatalogObject {
                                                      bool cached_only = false);
   std::shared_ptr<TableCatalogObject> GetTableObject(
       const std::string &table_name, const std::string &schema_name,
-      const std::string &session_namespace,
       bool cached_only = false);
 
   bool IsValidTableObjects() {

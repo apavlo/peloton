@@ -110,7 +110,6 @@ class Catalog {
   // Create index for a table
   ResultType CreateIndex(const std::string &database_name,
                          const std::string &schema_name,
-                         const std::string &session_namespace,
                          const std::string &table_name,
                          const std::vector<oid_t> &key_attrs,
                          const std::string &index_name, bool unique_keys,
@@ -171,7 +170,6 @@ class Catalog {
   // Drop a table using table name
   ResultType DropTable(const std::string &database_name,
                        const std::string &schema_name,
-                       const std::string &session_namespace,
                        const std::string &table_name,
                        concurrency::TransactionContext *txn);
   // Drop a table, use this one in the future
@@ -208,7 +206,6 @@ class Catalog {
    * */
   storage::DataTable *GetTableWithName(const std::string &database_name,
                                        const std::string &schema_name,
-                                       const std::string &session_namespace,
                                        const std::string &table_name,
                                        concurrency::TransactionContext *txn);
 

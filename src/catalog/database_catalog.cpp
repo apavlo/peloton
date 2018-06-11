@@ -147,26 +147,30 @@ std::shared_ptr<TableCatalogObject> DatabaseCatalogObject::GetTableObject(
  */
 std::shared_ptr<TableCatalogObject> DatabaseCatalogObject::GetTableObject(
     const std::string &table_name, const std::string &schema_name,
-    const std::string &session_namespace,
     bool cached_only) {
-  //no schema specified
-  if (schema_name.empty()) {
-    //search under temporary namespace
-    std::string key = session_namespace + "." + table_name;
-    auto it = table_name_cache.find(key);
-    if (it != table_name_cache.end()) return it->second;
 
-    // cache miss get from pg_table
-    auto pg_table = Catalog::GetInstance()
-                      ->GetSystemCatalogs(database_oid)
-                      ->GetTableCatalog();
-    auto table_object = pg_table->GetTableObject(table_name, session_namespace, txn);
-    if (table_object == nullptr) {
-      //search under public namespace
-      return GetTableObjectHelper(table_name, DEFAULT_SCHEMA_NAME, cached_only);
-    }
-    return table_object;
-  }
+  // TODO: I feel like the schema should *never* be empty here,
+  // but I don't know whether that is true.
+
+  // TODO: This code used to be for looking up tables in the temp namespace.
+  //no schema specified
+//  if (schema_name.empty()) {
+//    //search under temporary namespace
+//    std::string key = session_namespace + "." + table_name;
+//    auto it = table_name_cache.find(key);
+//    if (it != table_name_cache.end()) return it->second;
+//
+//    // cache miss get from pg_table
+//    auto pg_table = Catalog::GetInstance()
+//                      ->GetSystemCatalogs(database_oid)
+//                      ->GetTableCatalog();
+//    auto table_object = pg_table->GetTableObject(table_name, txn);
+//    if (table_object == nullptr) {
+//      //search under public namespace
+//      return GetTableObjectHelper(table_name, DEFAULT_SCHEMA_NAME, cached_only);
+//    }
+//    return table_object;
+//  }
   //search under a specific namespace
   return GetTableObjectHelper(table_name, schema_name, cached_only);
 }

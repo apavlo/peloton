@@ -86,7 +86,7 @@ SequenceCatalog::SequenceCatalog(const std::string &database_name,
                       "sqval        BIGINT NOT NULL);",
                       txn) {
   Catalog::GetInstance()->CreateIndex(
-      database_name, CATALOG_SCHEMA_NAME, CATALOG_SCHEMA_NAME, SEQUENCE_CATALOG_NAME,
+      database_name, CATALOG_SCHEMA_NAME, SEQUENCE_CATALOG_NAME,
       {ColumnId::DATABSE_OID, ColumnId::SEQUENCE_NAME},
       SEQUENCE_CATALOG_NAME "_skey0", false, IndexType::BWTREE, txn);
 }

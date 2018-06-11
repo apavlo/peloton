@@ -24,7 +24,8 @@
 namespace peloton {
 namespace function {
 
-/*@brief   The actual implementation to get the incremented value for the specified sequence
+/*
+ * @brief   The actual implementation to get the incremented value for the specified sequence
  * @param  sequence name
  * @param  executor context
  * @return  the next value for the sequence
@@ -47,10 +48,7 @@ uint32_t SequenceFunctions::Nextval(executor::ExecutorContext &ctx,
   txn->catalog_cache.EvictSequenceObject(sequence_name,database_oid);
   auto sequence_object =
           catalog::Catalog::GetInstance()
-                  ->GetDatabaseObject(ctx.GetDatabaseName(), ctx.GetTransaction());
-  catalog::SequenceCatalogObject* sequence_object =
-          catalog::Catalog::GetInstance()
-          ->GetSystemCatalogs(database_object->GetDatabaseOid())
+          ->GetSystemCatalogs(database_oid)
           ->GetSequenceCatalog()
           ->GetSequence(database_oid, sequence_name, mini_txn);
 
@@ -69,7 +67,8 @@ uint32_t SequenceFunctions::Nextval(executor::ExecutorContext &ctx,
     catalog::Catalog::GetInstance()
                   ->GetSystemCatalogs(database_oid)
                   ->GetSequenceCatalog()
-                  ->InsertCurrValCache(txn->temp_session_name_, sequence_name, curr_val);
+                  ->InsertCurrValCache(txn->GetTemporarySchemaName(),
+                                       sequence_name, curr_val);
     return val;
   } else {
     throw SequenceException(
@@ -77,7 +76,8 @@ uint32_t SequenceFunctions::Nextval(executor::ExecutorContext &ctx,
   }
 }
 
-/*@brief   The actual implementation to get the current value for the specified sequence
+/*
+ * @brief   The actual implementation to get the current value for the specified sequence
  * @param  sequence name
  * @param  executor context
  * @return  the current value of a sequence
@@ -98,9 +98,9 @@ uint32_t SequenceFunctions::Currval(executor::ExecutorContext &ctx,
                     ->GetSequenceCatalog();
 
   if(sequence_catalog->CheckCachedCurrValExistence(
-      txn->temp_session_name_, std::string(sequence_name))) {
+      txn->GetTemporarySchemaName(), std::string(sequence_name))) {
     return sequence_catalog->GetCachedCurrVal(
-      txn->temp_session_name_, std::string(sequence_name));
+      txn->GetTemporarySchemaName(), std::string(sequence_name));
   } else {
     // get sequence from catalog
     auto sequence_object = sequence_catalog
@@ -117,7 +117,8 @@ uint32_t SequenceFunctions::Currval(executor::ExecutorContext &ctx,
   }
 }
 
-/*@brief   The wrapper function to get the incremented value for the specified sequence
+/*
+ * @brief   The wrapper function to get the incremented value for the specified sequence
  * @param  sequence name
  * @param  executor context
  * @return  the result of executing NextVal
@@ -128,7 +129,8 @@ type::Value SequenceFunctions::_Nextval(const std::vector<type::Value> &args) {
   return type::ValueFactory::GetIntegerValue(ret);
 }
 
-/*@brief   The wrapper function to get the current value for the specified sequence
+/*
+ * @brief   The wrapper function to get the current value for the specified sequence
  * @param  sequence name
  * @param  executor context
  * @return  the result of executing CurrVal

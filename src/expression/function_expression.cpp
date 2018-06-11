@@ -12,6 +12,8 @@
 
 #include "expression/function_expression.h"
 
+#include "type/value_factory.h"
+
 namespace peloton {
 namespace expression {
 

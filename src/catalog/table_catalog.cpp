@@ -571,7 +571,7 @@ std::shared_ptr<TableCatalogObject> TableCatalog::GetTableObject(
   auto database_object = txn->catalog_cache.GetDatabaseObject(database_oid);
   if (database_object) {
     auto table_object =
-        database_object->GetTableObject(table_name, schema_name, std::string(), true);
+        database_object->GetTableObject(table_name, schema_name, true);
     if (table_object) return table_object;
   }
 

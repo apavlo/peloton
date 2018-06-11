@@ -301,6 +301,10 @@ class TransactionContext : public Printable {
     return temp_table_objects;
   }
 
+  std::string GetTemporarySchemaName() const {
+    return (temp_schema_name_);
+  }
+
   /**
    * @brief set the commit option for create table
    * @param the commit option
@@ -319,8 +323,6 @@ class TransactionContext : public Printable {
 
   /** cache for table catalog objects */
   catalog::CatalogCache catalog_cache;
-
-  std::string temp_session_name_;
 
  private:
   //===--------------------------------------------------------------------===//
